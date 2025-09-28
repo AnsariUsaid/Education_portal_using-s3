@@ -1,0 +1,10 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = https://github.com/AnsariUsaid/Education_portal_using-s3
+	fetch = +refs/*:refs/*
+	mirror = true
