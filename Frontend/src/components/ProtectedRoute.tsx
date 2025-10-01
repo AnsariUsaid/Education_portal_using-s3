@@ -1,12 +1,13 @@
-import { ReactNode, useEffect } from 'react';
+import { useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: 'teacher' | 'student';
+  requiredRole?: string;
 }
 
-export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,11 +20,23 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
     }
 
     if (requiredRole && role !== requiredRole) {
-      // Redirect to appropriate dashboard if wrong role
-      navigate(role === 'teacher' ? '/teacher-dashboard' : '/student-dashboard');
+      navigate('/login');
       return;
     }
   }, [navigate, requiredRole]);
 
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+
+  if (!token || (requiredRole && role !== requiredRole)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return <>{children}</>;
-}
+};
+
+export default ProtectedRoute;
