@@ -1,12 +1,22 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./portal.db"
+# Database configuration
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./eduportal.db")
 
-engine=create_engine(SQLALCHEMY_DATABASE_URL)
+# Create engine with better configuration
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {},
+    echo=False  # Set to True for SQL logging in development
+)
 
-SessionLocal=sessionmaker(autoflush=False,autocommit=False,bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
-
-Base=declarative_base()
+Base = declarative_base()
