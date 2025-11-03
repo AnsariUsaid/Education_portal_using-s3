@@ -9,11 +9,17 @@ from starlette import status
 from Backend.routers.auth import db_dependency,get_user_from_token
 from Backend.models import questions,answers,users
 from typing import List
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 router=APIRouter(
     prefix='/teacher',
     tags=['teacher']
 )
+
 class QPUpload(BaseModel):
     title: str
     course: str
@@ -29,11 +35,15 @@ class QuestionOut(BaseModel):
     class Config:
         orm_mode = True
 
-AWS_ACCESS_KEY_ID="XXXXXX"
-AWS_SECRET_ACCESS_KEY="XXXXXXX"
-AWS_REGION="XXXX"
-BUCKET_NAME="XXXXXX"
+# AWS Configuration from environment variables
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
+BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
+# Validate required environment variables
+if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, BUCKET_NAME]):
+    raise ValueError("Missing required AWS environment variables. Please check your .env file.")
 
 s3_client=boto3.client(
     "s3",

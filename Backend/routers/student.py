@@ -5,21 +5,31 @@ from fastapi.responses import StreamingResponse
 from Backend.routers.auth import db_dependency,get_user_from_token
 from Backend.models import questions,answers,users
 from typing import List
+from botocore.exceptions import ClientError
 import uuid
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 import boto3
 import io
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 router=APIRouter(
     prefix='/student',
     tags=['student']
 )
 
+# AWS Configuration from environment variables
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
+BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
-AWS_ACCESS_KEY_ID="XXXXXXX"
-AWS_SECRET_ACCESS_KEY="XXXXXXX"
-AWS_REGION="XXXXXX"
-BUCKET_NAME="XXXXXXXX"
+# Validate required environment variables
+if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, BUCKET_NAME]):
+    raise ValueError("Missing required AWS environment variables. Please check your .env file.")
 
 s3_client = boto3.client(
     "s3",
@@ -81,11 +91,44 @@ async def download_question(qp_id: int, db: db_dependency, user=Depends(get_user
     question = db.query(questions).filter(questions.id == qp_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
-    
-    # Get file from S3
-    file_obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=question.s3_key)
-    file_stream = io.BytesIO(file_obj['Body'].read())
-    
+    # Ensure s3_key exists on the DB record
+    if not getattr(question, "s3_key", None):
+        raise HTTPException(status_code=404, detail="No S3 key stored for this question")
+
+    # Try to fetch file from S3 and provide clearer errors for missing keys
+    attempted_keys = []
+    candidate_keys = [question.s3_key]
+
+    # If the stored key looks like a bare filename (no '/'), try the questions/<course>/prefix
+    if question.s3_key and '/' not in question.s3_key:
+        candidate_keys.append(f"questions/{question.course}/{question.s3_key}")
+        candidate_keys.append(f"questions/{question.course}/{question.uploaded_by}_{question.s3_key}")
+
+    file_stream = None
+    for key in candidate_keys:
+        attempted_keys.append(key)
+        try:
+            file_obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=key)
+            file_stream = io.BytesIO(file_obj['Body'].read())
+            # update question.s3_key in memory (do not persist) so the filename used in header is correct
+            question.s3_key = key
+            break
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code")
+            # If key missing, try next candidate; for other errors, raise immediately
+            if error_code != "NoSuchKey":
+                raise HTTPException(status_code=500, detail=f"S3 error: {str(e)}")
+
+    if file_stream is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "File not found in S3 for this question",
+                "attempted_keys": attempted_keys,
+                "bucket": BUCKET_NAME,
+            },
+        )
+
     # Return as downloadable response
     return StreamingResponse(
         file_stream,
