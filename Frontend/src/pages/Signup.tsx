@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import AuthLayout from '@/components/auth/AuthLayout';
-import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, AlertCircle, GraduationCap, Users } from 'lucide-react';
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -69,48 +69,49 @@ export default function Signup() {
   return (
     <AuthLayout 
       title="Join EduPortal"
-      subtitle="Create your account to get started"
+      subtitle="Create your account to get started with academic excellence"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <Alert variant="destructive" className="animate-slide-down">
-            <AlertDescription>{error}</AlertDescription>
+          <Alert variant="destructive" className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-red-800">{error}</AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username" className="text-sm font-medium">
+            <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
               Username
             </Label>
             <Input
               id="username"
               type="text"
-              placeholder="Choose a username"
+              placeholder="Choose a unique username"
               value={formData.username}
               onChange={(e) => handleInputChange('username', e.target.value)}
-              className="w-full transition-all duration-300 focus:scale-[1.02] focus:shadow-md"
+              className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium">
-              Email
+            <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+              Email Address
             </Label>
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email address"
+              placeholder="your.email@example.com"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className="w-full transition-all duration-300 focus:scale-[1.02] focus:shadow-md"
+              className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium">
+            <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
               Password
             </Label>
             <div className="relative">
@@ -120,44 +121,56 @@ export default function Signup() {
                 placeholder="Create a strong password"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className="w-full pr-12 transition-all duration-300 focus:scale-[1.02] focus:shadow-md"
+                className="h-11 pr-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                 required
+                minLength={6}
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-4 w-4 text-gray-500" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="h-4 w-4 text-gray-500" />
                 )}
               </Button>
             </div>
+            <p className="text-xs text-gray-500">Must be at least 6 characters</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role" className="text-sm font-medium">
+            <Label htmlFor="role" className="text-sm font-semibold text-gray-700">
               I am a...
             </Label>
             <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-              <SelectTrigger className="w-full transition-all duration-300 focus:scale-[1.02] focus:shadow-md">
+              <SelectTrigger className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                 <SelectValue placeholder="Select your role" />
               </SelectTrigger>
-              <SelectContent className="z-50 bg-popover border border-border">
-                <SelectItem value="student" className="hover:bg-accent transition-colors duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-primary rounded-full"></div>
-                    <span>Student</span>
+              <SelectContent className="bg-white border border-gray-200">
+                <SelectItem value="student" className="hover:bg-blue-50 cursor-pointer">
+                  <div className="flex items-center gap-3 py-1">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <GraduationCap className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-gray-900">Student</div>
+                      <div className="text-xs text-gray-500">Access learning materials</div>
+                    </div>
                   </div>
                 </SelectItem>
-                <SelectItem value="teacher" className="hover:bg-accent transition-colors duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                    <span>Teacher</span>
+                <SelectItem value="teacher" className="hover:bg-green-50 cursor-pointer">
+                  <div className="flex items-center gap-3 py-1">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-gray-900">Teacher</div>
+                      <div className="text-xs text-gray-500">Upload and manage content</div>
+                    </div>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -167,12 +180,12 @@ export default function Signup() {
 
         <Button 
           type="submit" 
-          className="w-full bg-gradient-success hover:scale-105 transition-all duration-300 button-glow"
+          className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
           disabled={isLoading}
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-success-foreground/30 border-t-success-foreground rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               Creating account...
             </div>
           ) : (
@@ -183,16 +196,22 @@ export default function Signup() {
           )}
         </Button>
 
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Already have an account?</span>
+          </div>
+        </div>
+
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link 
-              to="/login" 
-              className="text-primary hover:text-primary-hover transition-colors duration-300 font-medium hover:underline"
-            >
-              Sign in here
-            </Link>
-          </p>
+          <Link 
+            to="/login" 
+            className="text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors"
+          >
+            Sign in instead →
+          </Link>
         </div>
       </form>
     </AuthLayout>

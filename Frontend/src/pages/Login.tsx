@@ -3,11 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import AuthLayout from '@/components/auth/AuthLayout';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -70,14 +69,15 @@ export default function Login() {
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <Alert variant="destructive" className="animate-slide-down">
-            <AlertDescription>{error}</AlertDescription>
+          <Alert variant="destructive" className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-red-800">{error}</AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username" className="text-sm font-medium">
+            <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
               Username
             </Label>
             <Input
@@ -86,15 +86,23 @@ export default function Login() {
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full transition-all duration-300 focus:scale-[1.02] focus:shadow-md"
+              className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium">
-              Password
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                Password
+              </Label>
+              <button
+                type="button"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
             <div className="relative">
               <Input
                 id="password"
@@ -102,20 +110,20 @@ export default function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pr-12 transition-all duration-300 focus:scale-[1.02] focus:shadow-md"
+                className="h-11 pr-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                 required
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-4 w-4 text-gray-500" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="h-4 w-4 text-gray-500" />
                 )}
               </Button>
             </div>
@@ -124,12 +132,12 @@ export default function Login() {
 
         <Button 
           type="submit" 
-          className="w-full bg-gradient-primary hover:scale-105 transition-all duration-300 button-glow"
+          className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
           disabled={isLoading}
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               Signing in...
             </div>
           ) : (
@@ -140,16 +148,22 @@ export default function Login() {
           )}
         </Button>
 
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">New to EduPortal?</span>
+          </div>
+        </div>
+
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link 
-              to="/signup" 
-              className="text-primary hover:text-primary-hover transition-colors duration-300 font-medium hover:underline"
-            >
-              Sign up here
-            </Link>
-          </p>
+          <Link 
+            to="/signup" 
+            className="text-blue-600 hover:text-blue-700 font-semibold text-sm transition-colors"
+          >
+            Create a new account →
+          </Link>
         </div>
       </form>
     </AuthLayout>
