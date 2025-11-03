@@ -110,10 +110,27 @@ async def uploaded_by_user_teacher(db:db_dependency,user=Depends(get_user_from_t
         raise HTTPException(status_code=404)
     elif user['role']=='student':
         raise HTTPException(status_code=401)
+    
     qp_model=db.query(questions).filter(questions.uploaded_by==user['id']).all()
     if not qp_model:
         return []
-    return qp_model
+    
+    # Add submission count for each question paper
+    result = []
+    for qp in qp_model:
+        submission_count = db.query(answers).filter(answers.question_id == qp.id).count()
+        result.append({
+            "id": qp.id,
+            "title": qp.title,
+            "course": qp.course,
+            "description": qp.description,
+            "uploaded_by": qp.uploaded_by,
+            "s3_key": qp.s3_key,
+            "uploadedAt": qp.id,  # Using id as timestamp placeholder since model doesn't have created_at
+            "studentUploads": submission_count
+        })
+    
+    return result
     
 @router.get('/student-uploads/{qp_id}', status_code=status.HTTP_200_OK)
 async def student_uploads_for_qp(qp_id: int, db: db_dependency, user=Depends(get_user_from_token)):
@@ -126,15 +143,26 @@ async def student_uploads_for_qp(qp_id: int, db: db_dependency, user=Depends(get
     if not qp:
         raise HTTPException(status_code=404, detail="Question not found or not yours")
 
-    uploads = db.query(answers).filter(answers.question_id == qp_id).all()
-    return [
-    {
-        "answer_id": ans.id,
-        "studentName": ans.answered_by,  
-        "uploadedAt": ans.uploaded_at.isoformat() if hasattr(ans, 'uploaded_at') else None,  
-        "s3_key": ans.s3_key
-    } for ans in uploads
-    ]
+    # Join with users table to get student names
+    uploads = (
+        db.query(answers, users.username)
+        .join(users, answers.answered_by == users.id)
+        .filter(answers.question_id == qp_id)
+        .all()
+    )
+    
+    result = []
+    for ans, student_name in uploads:
+        result.append({
+            "answer_id": ans.id,
+            "student_name": student_name,
+            "answered_by": ans.answered_by,
+            "uploaded_at": str(ans.id),  # Using ID as placeholder since model doesn't have timestamp
+            "s3_key": ans.s3_key,
+            "qp_id": ans.question_id
+        })
+    
+    return result
 
 
 @router.get('/download-student-upload/{answer_id}')

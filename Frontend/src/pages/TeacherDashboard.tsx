@@ -194,6 +194,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { 
   Upload, 
   FileText, 
@@ -204,7 +205,9 @@ import {
   Plus,
   ArrowLeft,
   Calendar,
-  User
+  User,
+  Activity,
+  TrendingUp
 } from 'lucide-react';
 
 interface QuestionPaper {
@@ -213,7 +216,7 @@ interface QuestionPaper {
   course: string;
   description: string;
   uploadedAt: string;
-  studentUploads: number;
+  studentUploads?: number; // Make optional with fallback
 }
 
 interface StudentUpload {
@@ -265,6 +268,8 @@ export default function TeacherDashboard() {
       });
       if (!res.ok) throw new Error('Failed to fetch uploaded list');
       const data = await res.json();
+      
+      console.log('Fetched question papers:', data); // Debug log
       setQuestionPapers(data);
     } catch (error) {
       toast({
@@ -415,235 +420,380 @@ export default function TeacherDashboard() {
 
   return (
     <DashboardLayout title="Teacher Dashboard" role="teacher">
-      <div className="space-y-8">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="card-hover animate-scale-in">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="w-5 h-5 text-primary" />
-                Total QPs
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gradient">{questionPapers.length}</div>
-              <p className="text-sm text-muted-foreground mt-1">Question papers uploaded</p>
-            </CardContent>
-          </Card>
+      {!viewingSubmissions ? (
+        <div className="space-y-6">
+          {/* Welcome Section */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+            <h2 className="text-2xl font-bold mb-2">Welcome back, {localStorage.getItem('username')}! 👋</h2>
+            <p className="text-blue-100">Manage your question papers and track student submissions.</p>
+          </div>
 
-          <Card className="card-hover animate-scale-in" style={{animationDelay: '0.1s'}}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="w-5 h-5 text-success" />
-                Student Responses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gradient">
-                {questionPapers.reduce((acc, qp) => acc + qp.studentUploads, 0)}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Total submissions received</p>
-            </CardContent>
-          </Card>
+          {/* Statistics Cards - More Compact */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span className="text-2xl font-bold text-blue-600">{questionPapers.length}</span>
+                </div>
+                <p className="text-sm font-medium text-gray-700">Total QPs</p>
+                <p className="text-xs text-gray-500">Uploaded</p>
+              </CardContent>
+            </Card>
 
-          <Card className="card-hover animate-scale-in" style={{animationDelay: '0.2s'}}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <BookOpen className="w-5 h-5 text-warning" />
-                Active Courses
+            <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Users className="w-4 h-4 text-green-600" />
+                  </div>
+                  <span className="text-2xl font-bold text-green-600">
+                    {questionPapers.reduce((acc, qp) => acc + (qp.studentUploads || 0), 0)}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-gray-700">Submissions</p>
+                <p className="text-xs text-gray-500">Received</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-md bg-white hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <BookOpen className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <span className="text-2xl font-bold text-purple-600">
+                    {new Set(questionPapers.map(qp => qp.course)).size}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-gray-700">Courses</p>
+                <p className="text-xs text-gray-500">Active</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - 2/3 width */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Upload Button */}
+              <Card className="border-0 shadow-md bg-white">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                        Upload Question Paper
+                      </CardTitle>
+                      <CardDescription className="text-gray-600">
+                        Share new question papers with your students
+                      </CardDescription>
+                    </div>
+                    
+                    <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md">
+                          <Plus className="w-4 h-4 mr-2" />
+                          New QP
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md bg-white">
+                        <DialogHeader>
+                          <DialogTitle className="text-xl font-bold text-gray-900">Upload Question Paper</DialogTitle>
+                          <DialogDescription className="text-gray-600">
+                            Fill in the details and upload your question paper
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <form onSubmit={handleUploadSubmit} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="title" className="text-sm font-semibold text-gray-700">Title</Label>
+                            <Input
+                              id="title"
+                              placeholder="e.g., Mathematics Final Exam 2024"
+                              value={uploadForm.title}
+                              onChange={(e) => setUploadForm(prev => ({...prev, title: e.target.value}))}
+                              required
+                              className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="course" className="text-sm font-semibold text-gray-700">Course</Label>
+                            <Input
+                              id="course"
+                              placeholder="e.g., Mathematics"
+                              value={uploadForm.course}
+                              onChange={(e) => setUploadForm(prev => ({...prev, course: e.target.value}))}
+                              required
+                              className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-semibold text-gray-700">Description</Label>
+                            <Textarea
+                              id="description"
+                              placeholder="Brief description of the question paper"
+                              value={uploadForm.description}
+                              onChange={(e) => setUploadForm(prev => ({...prev, description: e.target.value}))}
+                              rows={3}
+                              className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="file" className="text-sm font-semibold text-gray-700">PDF File</Label>
+                            <Input
+                              id="file"
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) => setUploadForm(prev => ({
+                                ...prev, 
+                                file: e.target.files?.[0] || null
+                              }))}
+                              required
+                              className="border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                            />
+                          </div>
+                          
+                          <div className="flex gap-3 pt-4">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setIsUploadOpen(false)}
+                              className="flex-1 hover:bg-gray-100"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              disabled={isLoading}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
+                            >
+                              {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                  Uploading...
+                                </div>
+                              ) : (
+                                'Upload'
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              {/* Uploaded QPs List */}
+              <Card className="border-0 shadow-md bg-white">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      My Question Papers
+                    </CardTitle>
+                    <span className="text-sm text-gray-500">{questionPapers.length} papers</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {questionPapers.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Upload className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-1">No question papers yet</h3>
+                      <p className="text-xs text-gray-600">Upload your first question paper to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                      {questionPapers.map((qp) => (
+                        <div 
+                          key={qp.id} 
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 bg-white hover:border-blue-200"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-base text-gray-900 truncate mb-2">{qp.title}</h4>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mb-2">
+                                <Badge variant="outline" className="border-blue-200 text-blue-700">
+                                  {qp.course}
+                                </Badge>
+                                <span className="text-gray-400">•</span>
+                                <span>{new Date(qp.uploadedAt).toLocaleDateString()}</span>
+                              </div>
+                              <p className="text-xs text-gray-600 line-clamp-2 mb-2">{qp.description}</p>
+                              
+                              <div className="flex items-center gap-2 text-xs">
+                                <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-md">
+                                  <Users className="w-3 h-3" />
+                                  <span className="font-medium">{qp.studentUploads || 0}</span>
+                                  <span>submissions</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownloadQP(qp)}
+                                className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 text-xs h-8"
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                Download
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleViewSubmissions(qp)}
+                                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xs h-8"
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View ({qp.studentUploads})
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - 1/3 width */}
+            <div className="space-y-6">
+              {/* Recent Uploads */}
+              <Card className="border-0 shadow-md bg-white">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
+                    <Activity className="w-4 h-4 text-blue-600" />
+                    Recent Uploads
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {questionPapers.slice(0, 4).map((qp, index) => (
+                      <div key={index} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-900 truncate">{qp.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {qp.course} • {qp.studentUploads || 0} submissions
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Overview Stats */}
+              <Card className="border-0 shadow-md bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                        <p className="text-xl font-bold">{questionPapers.length}</p>
+                        <p className="text-xs text-blue-100">Total Papers</p>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                        <p className="text-xl font-bold">
+                          {questionPapers.reduce((acc, qp) => acc + (qp.studentUploads || 0), 0)}
+                        </p>
+                        <p className="text-xs text-blue-100">Submissions</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+                      <p className="text-xs text-blue-100 mb-1">Average per Paper</p>
+                      <p className="text-2xl font-bold">
+                        {questionPapers.length > 0 
+                          ? Math.round(questionPapers.reduce((acc, qp) => acc + (qp.studentUploads || 0), 0) / questionPapers.length)
+                          : 0}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Submissions View
+        <div className="space-y-6">
+          <Button
+            variant="outline"
+            onClick={handleBackToMain}
+            className="hover:bg-gray-100"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+
+          <Card className="border-0 shadow-md bg-white">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-900">
+                Submissions for: {selectedQP?.title}
               </CardTitle>
+              <CardDescription className="text-gray-600">
+                Course: {selectedQP?.course} • {studentUploads.length} submission(s)
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gradient">
-                {new Set(questionPapers.map(qp => qp.course)).size}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Courses with QPs</p>
+              {studentUploads.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-xl">
+                  <Users className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">No submissions yet</h3>
+                  <p className="text-xs text-gray-600">Students haven't submitted answers for this paper</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {studentUploads.map((upload) => (
+                    <div
+                      key={upload.answer_id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all hover:border-blue-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{upload.student_name || 'Unknown Student'}</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {upload.uploaded_at ? new Date(upload.uploaded_at).toLocaleString() : 'Date not available'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleDownloadStudentUpload(upload)}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Upload QP Section */}
-        <Card className="animate-fade-in-up">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-primary" />
-                  Upload Question Paper
-                </CardTitle>
-                <CardDescription>
-                  Share new question papers with your students
-                </CardDescription>
-              </div>
-              
-              <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-primary hover:scale-105 transition-all duration-300 button-glow">
-                    <Plus className="w-4 h-4 mr-2" />
-                    New QP
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md animate-scale-in">
-                  <DialogHeader>
-                    <DialogTitle>Upload Question Paper</DialogTitle>
-                    <DialogDescription>
-                      Fill in the details and upload your question paper
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <form onSubmit={handleUploadSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Title</Label>
-                      <Input
-                        id="title"
-                        placeholder="e.g., Mathematics Final Exam 2024"
-                        value={uploadForm.title}
-                        onChange={(e) => setUploadForm(prev => ({...prev, title: e.target.value}))}
-                        required
-                        className="transition-all duration-300 focus:scale-[1.02]"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="course">Course</Label>
-                      <Input
-                        id="course"
-                        placeholder="e.g., Mathematics"
-                        value={uploadForm.course}
-                        onChange={(e) => setUploadForm(prev => ({...prev, course: e.target.value}))}
-                        required
-                        className="transition-all duration-300 focus:scale-[1.02]"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Brief description of the question paper"
-                        value={uploadForm.description}
-                        onChange={(e) => setUploadForm(prev => ({...prev, description: e.target.value}))}
-                        rows={3}
-                        className="transition-all duration-300 focus:scale-[1.02]"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="file">PDF File</Label>
-                      <Input
-                        id="file"
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => setUploadForm(prev => ({
-                          ...prev, 
-                          file: e.target.files?.[0] || null
-                        }))}
-                        required
-                        className="transition-all duration-300 focus:scale-[1.02]"
-                      />
-                    </div>
-                    
-                    <div className="flex gap-3 pt-4">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setIsUploadOpen(false)}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        disabled={isLoading}
-                        className="flex-1 bg-gradient-success button-glow"
-                      >
-                        {isLoading ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-success-foreground/30 border-t-success-foreground rounded-full animate-spin"></div>
-                            Uploading...
-                          </div>
-                        ) : (
-                          'Upload'
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Uploaded QPs List */}
-        <Card className="animate-fade-in-up" style={{animationDelay: '0.1s'}}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              My Question Papers
-            </CardTitle>
-            <CardDescription>
-              Manage your uploaded question papers and view student submissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {questionPapers.length === 0 ? (
-              <div className="text-center py-12">
-                <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4 animate-float" />
-                <h3 className="text-lg font-medium mb-2">No question papers yet</h3>
-                <p className="text-muted-foreground">Upload your first question paper to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {questionPapers.map((qp, index) => (
-                  <div 
-                    key={qp.id} 
-                    className="border border-border rounded-lg p-4 hover:shadow-md transition-all duration-300 hover:scale-[1.01] animate-fade-in-up"
-                    style={{animationDelay: `${index * 0.1}s`}}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg mb-1">{qp.title}</h4>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          <span className="font-medium text-primary">{qp.course}</span> • 
-                          Uploaded on {new Date(qp.uploadedAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-muted-foreground mb-3">{qp.description}</p>
-                        
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4 text-success" />
-                            <span className="font-medium">{qp.studentUploads}</span>
-                            <span className="text-muted-foreground">submissions</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2 ml-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownloadQP(qp)}
-                          className="hover:scale-110 transition-transform duration-300"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewSubmissions(qp)}
-                          className="hover:scale-110 transition-transform duration-300"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </DashboardLayout>
   );
 }
