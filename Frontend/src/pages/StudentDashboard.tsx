@@ -33,6 +33,7 @@ interface QuestionPaperFromBackend {
   description: string;
   uploaded_by: number;
   s3_key: string;
+  hasSubmitted?: boolean;
 }
 
 export default function StudentDashboard() {
@@ -86,15 +87,17 @@ export default function StudentDashboard() {
 
         const data: QuestionPaperFromBackend[] = await res.json();
 
+        console.log('Fetched question papers:', data); // Debug log
+        
         setQuestionPapers(
           data.map((qp) => ({
             id: qp.id,
             title: qp.title,
             course: qp.course,
             description: qp.description,
-            uploadedBy: qp.uploaded_by.toString(), // works now
+            uploadedBy: qp.uploaded_by.toString(),
             uploadedAt: new Date().toISOString(),
-            hasSubmitted: false,
+            hasSubmitted: qp.hasSubmitted || false, // Use backend value
           }))
         );
       } catch (err) {

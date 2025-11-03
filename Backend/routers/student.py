@@ -58,8 +58,8 @@ class CourseOut(BaseModel):
         orm_mode = True
 
 
-@router.get('/questions/{course}',response_model=List[QuestionOut],status_code=status.HTTP_200_OK)
-async def show_qps(course:str,db:db_dependency,user=Depends(get_user_from_token)):
+@router.get('/questions/{course}', status_code=status.HTTP_200_OK)
+async def show_qps(course:str, db:db_dependency, user=Depends(get_user_from_token)):
     if user is None:
         raise HTTPException(status_code=404)
 
@@ -68,7 +68,26 @@ async def show_qps(course:str,db:db_dependency,user=Depends(get_user_from_token)
     else:
         qp_model = db.query(questions).filter(questions.course == course).all()
 
-    return qp_model or []
+    # Add submission status for each question
+    result = []
+    for qp in qp_model:
+        # Check if this student has submitted an answer for this question
+        has_submitted = db.query(answers).filter(
+            answers.question_id == qp.id,
+            answers.answered_by == user['id']
+        ).first() is not None
+        
+        result.append({
+            "id": qp.id,
+            "title": qp.title,
+            "course": qp.course,
+            "description": qp.description,
+            "uploaded_by": qp.uploaded_by,
+            "s3_key": qp.s3_key,
+            "hasSubmitted": has_submitted
+        })
+    
+    return result
 
 @router.get('/courses', response_model=List[CourseOut], status_code=status.HTTP_200_OK)
 async def list_courses(db: db_dependency, user=Depends(get_user_from_token)):
